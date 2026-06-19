@@ -4,3 +4,7 @@ tunnel.pid
 tunnel_err.txt
 tunnel_out.txt
 server_log.txt
+~$*
+screenshots/
+*.pptx
+*.docx
