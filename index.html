@@ -1,0 +1,1148 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>POSCOPE — POSCO INTERNATIONAL Global Business Intelligence</title>
+  <script src="/static_libs/xlsx.full.min.js"></script>
+  <script src="/static_libs/chart.umd.min.js"></script>
+  <style>
+    :root{--blue-dark:#002060;--blue-mid:#004EA2;--blue-light:#E9F1FA;--accent:#009FE8;--green:#007A53;--red:#C0392B;--gray-bg:#F5F7FA;--gray-bd:#D9E2EE;--text:#1A1F36;--sub:#5F6B8A;--gold:#E8A000;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Segoe UI','Apple SD Gothic Neo',sans-serif;background:var(--gray-bg);color:var(--text);}
+    header{background:linear-gradient(90deg,#001848 0%,#002E7A 55%,#004EA2 100%);color:#fff;padding:14px 32px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 16px rgba(0,0,0,.3);position:relative;}
+    header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent) 0%,#005CB9 100%);}
+    .brand{display:flex;align-items:center;gap:0;}
+    .brand-text{margin-left:0;}
+    .brand-text h1{font-size:20px;font-weight:900;letter-spacing:4px;color:#fff;}
+    .brand-text p{font-size:10px;opacity:.65;margin-top:3px;letter-spacing:.8px;text-transform:uppercase;}
+    .header-right{display:flex;align-items:center;gap:20px;}
+    .hbadge{font-size:10px;padding:3px 10px;border-radius:3px;background:rgba(255,255,255,.12);color:rgba(255,255,255,.85);font-weight:600;border:1px solid rgba(255,255,255,.2);letter-spacing:.2px;}
+    .header-meta{text-align:right;font-size:11px;opacity:.75;}
+    .header-meta .dt{font-size:13px;font-weight:700;opacity:1;}
+
+    /* TABS */
+    .tab-nav{background:#fff;border-bottom:2px solid var(--gray-bd);padding:0 32px;display:flex;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+    .tab-btn{padding:14px 24px;border:none;background:none;font-size:13px;font-weight:600;color:var(--sub);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s;display:flex;align-items:center;gap:7px;letter-spacing:.2px;}
+    .tab-btn:hover{color:var(--blue-mid);}
+    .tab-btn.active{color:var(--blue-dark);border-bottom-color:var(--accent);}
+    .tab-content{display:none;}
+    .tab-content.active{display:flex;flex-direction:column;}
+
+    /* STATS BAR */
+    .stats-bar{background:#fff;border-bottom:1px solid var(--gray-bd);padding:12px 32px;display:flex;gap:22px;align-items:center;flex-shrink:0;}
+    .stat{text-align:center;cursor:default;}
+    .stat .val{font-size:22px;font-weight:800;color:var(--blue-dark);letter-spacing:-.5px;}
+    .stat .lbl{font-size:10px;color:var(--sub);margin-top:2px;letter-spacing:.3px;text-transform:uppercase;font-weight:600;}
+    .divider{width:1px;height:34px;background:var(--gray-bd);}
+    .scan-btn{margin-left:auto;padding:9px 20px;border:none;border-radius:6px;background:var(--blue-mid);color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px;letter-spacing:.2px;transition:all .15s;}
+    .scan-btn:hover{background:var(--blue-dark);box-shadow:0 4px 12px rgba(0,32,96,.25);}
+
+    /* FILTER TOOLBAR */
+    .filter-toolbar{background:#fff;border-bottom:1px solid var(--gray-bd);padding:8px 16px;display:flex;align-items:center;gap:9px;flex-shrink:0;}
+    .search-wrap{position:relative;flex:1;max-width:340px;}
+    .search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:13px;pointer-events:none;color:var(--sub);}
+    .search-input{width:100%;padding:7px 12px 7px 30px;border:1.5px solid var(--gray-bd);border-radius:20px;font-size:12px;outline:none;transition:border-color .2s;background:#f8f9fb;}
+    .search-input:focus{border-color:var(--blue-mid);background:#fff;}
+    .sort-sel{padding:6px 10px;border:1.5px solid var(--gray-bd);border-radius:8px;font-size:12px;cursor:pointer;background:#fff;}
+    .res-count{font-size:12px;color:var(--sub);margin-left:auto;white-space:nowrap;}
+
+    /* DASHBOARD */
+    #tab-dashboard{height:calc(100vh - 148px);}
+    .layout{display:flex;flex:1;overflow:hidden;}
+    .sidebar{width:215px;min-width:215px;background:#fff;border-right:1px solid var(--gray-bd);padding:16px 13px;overflow-y:auto;flex-shrink:0;}
+    .sidebar h3{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px;}
+    .fg{margin-bottom:18px;}
+    .chip{display:inline-block;padding:4px 10px;border-radius:20px;font-size:11px;border:1.5px solid var(--gray-bd);cursor:pointer;margin:3px 2px 0 0;transition:all .15s;user-select:none;}
+    .chip:hover{border-color:var(--blue-mid);color:var(--blue-mid);}
+    .chip.active{background:var(--blue-mid);color:#fff;border-color:var(--blue-mid);}
+    .card-list{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:11px;}
+    .card{background:#fff;border-radius:10px;border:1px solid var(--gray-bd);padding:15px 17px;cursor:pointer;transition:all .18s;position:relative;overflow:visible;box-shadow:0 1px 4px rgba(0,0,0,.04);}
+    .card:hover{border-color:var(--blue-mid);box-shadow:0 6px 20px rgba(0,32,96,.12);transform:translateY(-2px);}
+    .card.selected{border-color:var(--blue-mid);box-shadow:0 6px 22px rgba(0,32,96,.16);}
+    .card.manual{border-left:4px solid var(--gold);}
+    .ct{display:flex;align-items:flex-start;justify-content:space-between;gap:9px;}
+    .ctitle{font-size:13px;font-weight:700;flex:1;min-width:0;overflow-wrap:anywhere;word-break:break-word;}
+    .tag{display:inline-block;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;flex-shrink:0;}
+    .tc{background:#dbeafe;color:#1d4ed8;}.te{background:#fef3c7;color:#92400e;}.ta{background:#dcfce7;color:#166534;}.tm{background:#fff3e0;color:#e65100;}.tg{background:#ede9fe;color:#5b21b6;}
+    .tinq{background:#fce7f3;color:#9d174d;}.tpjt{background:#e0e7ff;color:#3730a3;}
+    .st-검토중{background:#dbeafe;color:#1e40af;}.st-오퍼제출{background:#fef9c3;color:#854d0e;}.st-협상중{background:#ffedd5;color:#c2410c;}.st-수주{background:#d1fae5;color:#065f46;}.st-유찰{background:#f3f4f6;color:#6b7280;}
+    .cmeta{margin-top:6px;font-size:11px;color:var(--sub);display:flex;gap:12px;flex-wrap:wrap;}
+    .cmeta span{overflow-wrap:anywhere;word-break:break-word;max-width:100%;}
+    .cbottom{margin-top:9px;display:flex;align-items:center;gap:6px;}
+    .sfb{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;background:var(--blue-light);color:var(--blue-mid);}
+    .sfb.none{background:#f1f1f1;color:#aaa;}
+    .dl{font-size:11px;color:var(--sub);margin-left:auto;}
+    .dl.urg{color:var(--red);font-weight:700;}
+    .nbadge{position:absolute;top:0;right:0;background:var(--accent);color:#fff;font-size:10px;font-weight:800;padding:3px 9px;border-radius:0 12px 0 8px;}
+    .mbadge{position:absolute;top:0;right:0;background:#e65100;color:#fff;font-size:10px;font-weight:800;padding:3px 9px;border-radius:0 12px 0 8px;}
+
+    /* DETAIL */
+    .detail-panel{width:400px;min-width:400px;background:#fff;border-left:1px solid var(--gray-bd);padding:20px 18px;overflow-y:auto;display:none;flex-shrink:0;}
+    .detail-panel.open{display:block;}
+    .detail-panel h2{font-size:14px;font-weight:800;margin-bottom:5px;overflow-wrap:anywhere;word-break:break-word;}
+    .ds{margin-bottom:16px;}
+    .ds h4{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.6px;text-transform:uppercase;margin-bottom:7px;border-bottom:1px solid var(--gray-bd);padding-bottom:4px;}
+    .dr{display:flex;flex-direction:column;gap:2px;font-size:12px;margin-bottom:9px;}
+    .dr .k{color:var(--sub);font-size:10px;text-transform:uppercase;letter-spacing:.4px;}
+    .dr .v{font-weight:600;max-width:100%;overflow-wrap:anywhere;word-break:break-word;}
+    .sfh{border:1.5px solid var(--blue-light);border-radius:9px;padding:11px;background:var(--blue-light);}
+    .sfi{margin-bottom:9px;padding-bottom:9px;border-bottom:1px solid #c8d9f0;}
+    .sfi:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none;}
+    .sfi .sd{font-size:10px;color:var(--sub);margin-bottom:2px;}
+    .sfi .sw{font-size:11px;font-weight:700;color:var(--blue-dark);margin-bottom:3px;overflow-wrap:anywhere;word-break:break-word;}
+    .sfi .sm{font-size:12px;line-height:1.6;overflow-wrap:anywhere;word-break:break-word;}
+    .sfempty{font-size:12px;color:var(--sub);text-align:center;padding:12px 0;}
+    .ais{background:linear-gradient(135deg,#f0f4ff,#e8f0fb);border:1px solid #c5d3f0;border-radius:9px;padding:11px;margin-bottom:14px;}
+    .ais .al{font-size:10px;font-weight:800;color:var(--blue-mid);letter-spacing:.7px;margin-bottom:4px;}
+    .ais p{font-size:12px;line-height:1.7;overflow-wrap:anywhere;word-break:break-word;}
+    .tbtn{width:100%;padding:10px;border:none;border-radius:9px;background:#5059c9;color:#fff;font-size:13px;font-weight:700;cursor:pointer;margin-top:5px;display:flex;align-items:center;justify-content:center;gap:7px;}
+    .tbtn:hover{background:#3d43a4;}
+    .cpanel-close{float:right;cursor:pointer;font-size:17px;color:var(--sub);background:none;border:none;}
+    .detail-actions{display:flex;gap:8px;margin-bottom:14px;}
+    .edit-btn{flex:1;padding:8px;border:1.5px solid var(--blue-mid);border-radius:8px;background:#fff;color:var(--blue-mid);font-size:12px;font-weight:700;cursor:pointer;}
+    .edit-btn:hover{background:var(--blue-light);}
+    .del-btn{padding:8px 12px;border:none;border-radius:8px;background:#fee2e2;color:var(--red);font-size:12px;font-weight:700;cursor:pointer;}
+    .del-btn:hover{background:#fca5a5;}
+    .status-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+    .st-pill{padding:5px 11px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:2px solid transparent;transition:all .15s;}
+    .st-pill.active{border-color:currentColor;box-shadow:0 0 0 1px currentColor;}
+
+    /* UPLOAD TAB */
+    #tab-upload{padding:28px;gap:22px;height:calc(100vh - 108px);overflow-y:auto;}
+    .ugrid{display:grid;grid-template-columns:1fr 1fr;gap:22px;}
+    .ucard{background:#fff;border-radius:14px;border:1.5px solid var(--gray-bd);padding:24px;}
+    .ucard h3{font-size:14px;font-weight:700;margin-bottom:5px;display:flex;align-items:center;gap:8px;}
+    .ucard>p{font-size:12px;color:var(--sub);margin-bottom:16px;line-height:1.6;}
+    .dropzone{border:2px dashed var(--gray-bd);border-radius:11px;padding:32px 18px;text-align:center;cursor:pointer;transition:all .2s;background:var(--gray-bg);}
+    .dropzone:hover,.dropzone.over{border-color:var(--blue-mid);background:var(--blue-light);}
+    .dropzone .di{font-size:34px;margin-bottom:8px;}
+    .dropzone p{font-size:12px;color:var(--sub);}
+    .dropzone strong{color:var(--blue-mid);}
+    .fi{display:none;}
+    .fmap{margin-top:14px;display:none;}
+    .fmap h4{font-size:11px;font-weight:700;color:var(--sub);margin-bottom:9px;}
+    .frow{display:flex;align-items:center;gap:9px;margin-bottom:7px;font-size:12px;}
+    .frow label{width:90px;color:var(--sub);}
+    .frow select{flex:1;padding:5px 7px;border:1.5px solid var(--gray-bd);border-radius:6px;font-size:11px;background:#fff;}
+    .ibtn{margin-top:12px;width:100%;padding:9px;border:none;border-radius:8px;background:var(--blue-mid);color:#fff;font-size:13px;font-weight:700;cursor:pointer;}
+    .ibtn:hover{background:var(--blue-dark);}
+    .pvwrap{margin-top:12px;max-height:160px;overflow:auto;display:none;}
+    .pvtbl{width:100%;border-collapse:collapse;font-size:11px;}
+    .pvtbl th{background:var(--blue-dark);color:#fff;padding:4px 7px;text-align:left;position:sticky;top:0;}
+    .pvtbl td{padding:3px 7px;border-bottom:1px solid var(--gray-bd);overflow-wrap:anywhere;word-break:break-word;max-width:160px;}
+    .mform{display:flex;flex-direction:column;gap:9px;}
+    .fgrp{display:flex;gap:9px;}
+    .fg2{flex:1;display:flex;flex-direction:column;gap:3px;}
+    .fg2 label{font-size:10px;font-weight:600;color:var(--sub);}
+    .fg2 input,.fg2 select,.fg2 textarea{padding:7px 9px;border:1.5px solid var(--gray-bd);border-radius:7px;font-size:12px;font-family:inherit;}
+    .fg2 textarea{resize:vertical;min-height:56px;}
+    .fg2 input:focus,.fg2 select:focus,.fg2 textarea:focus{outline:none;border-color:var(--blue-mid);}
+    .abtn{padding:9px;border:none;border-radius:8px;background:var(--green);color:#fff;font-size:13px;font-weight:700;cursor:pointer;margin-top:3px;}
+    .abtn:hover{background:#006644;}
+    .uhist{background:#fff;border-radius:14px;border:1.5px solid var(--gray-bd);padding:22px;}
+    .uhist h3{font-size:14px;font-weight:700;margin-bottom:12px;}
+    .hitem{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--gray-bd);}
+    .hitem:last-child{border-bottom:none;}
+    .hicon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+    .hicon.xl{background:#e8f5e9;}.hicon.mn{background:#fff3e0;}
+    .hinfo{flex:1;min-width:0;}
+    .hinfo strong{font-size:12px;display:block;overflow-wrap:anywhere;word-break:break-word;}
+    .hinfo span{font-size:11px;color:var(--sub);}
+    .hcnt{font-size:13px;font-weight:700;color:var(--blue-mid);}
+    .poscope-import-box{background:#f0f4ff;border:2px dashed var(--blue-mid);border-radius:11px;padding:20px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:12px;}
+    .poscope-import-box:hover{background:var(--blue-light);}
+    .poscope-import-box .di{font-size:28px;margin-bottom:6px;}
+    .poscope-import-box p{font-size:12px;color:var(--blue-mid);font-weight:600;}
+    .poscope-import-box span{font-size:11px;color:var(--sub);}
+
+    /* STATS TAB */
+    #tab-stats{padding:28px;height:calc(100vh - 108px);overflow-y:auto;}
+    .dept-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:28px;}
+    .dept-card{background:#fff;border-radius:10px;border:1px solid var(--gray-bd);padding:24px;cursor:pointer;transition:all .2s;text-decoration:none;display:block;color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.05);}
+    .dept-card:hover{border-color:var(--blue-mid);box-shadow:0 8px 28px rgba(0,32,96,.16);transform:translateY(-4px);}
+    .dept-card .dc-icon{font-size:30px;margin-bottom:12px;}
+    .dept-card .dc-title{font-size:16px;font-weight:800;margin-bottom:5px;letter-spacing:.2px;}
+    .dept-card .dc-sub{font-size:11px;color:var(--sub);margin-bottom:16px;line-height:1.5;}
+    .dept-card .dc-stats{display:flex;gap:16px;}
+    .dept-card .dc-stat .v{font-size:22px;font-weight:800;color:var(--blue-dark);letter-spacing:-.5px;}
+    .dept-card .dc-stat .l{font-size:10px;color:var(--sub);text-transform:uppercase;letter-spacing:.3px;font-weight:600;}
+    .dept-card.c{border-top:4px solid var(--blue-mid);}
+    .dept-card.e{border-top:4px solid var(--gold);}
+    .dept-card.a{border-top:4px solid var(--green);}
+    .dept-card.g{border-top:4px solid #6b46c1;}
+    .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-bottom:22px;}
+    .chart-card{background:#fff;border-radius:14px;border:1.5px solid var(--gray-bd);padding:22px;}
+    .chart-card h3{font-size:14px;font-weight:700;margin-bottom:16px;}
+    .chart-wrap{position:relative;height:200px;}
+    .deadline-card{background:#fff;border-radius:14px;border:1.5px solid var(--gray-bd);padding:22px;}
+    .deadline-card h3{font-size:14px;font-weight:700;margin-bottom:14px;}
+    .dl-item{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--gray-bd);font-size:12px;}
+    .dl-item:last-child{border-bottom:none;}
+    .dl-days{min-width:52px;text-align:center;font-size:12px;font-weight:800;padding:4px 8px;border-radius:8px;white-space:nowrap;}
+    .dl-days.urgent{background:#fee2e2;color:var(--red);}
+    .dl-days.warn{background:#fef3c7;color:#92400e;}
+    .dl-days.ok{background:#d1fae5;color:#065f46;}
+    .dl-title{flex:1;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .dl-meta{font-size:11px;color:var(--sub);white-space:nowrap;}
+
+    /* EDIT MODAL */
+    .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:998;align-items:center;justify-content:center;}
+    .modal-bg.open{display:flex;}
+    .modal{background:#fff;border-radius:16px;padding:26px;width:600px;max-width:94vw;max-height:88vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.22);}
+    .modal h3{font-size:15px;font-weight:800;margin-bottom:16px;color:var(--blue-dark);}
+    .mfgrp{display:flex;gap:9px;margin-bottom:9px;}
+    .mfg{flex:1;display:flex;flex-direction:column;gap:3px;}
+    .mfg label{font-size:10px;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.4px;}
+    .mfg input,.mfg select,.mfg textarea{padding:7px 9px;border:1.5px solid var(--gray-bd);border-radius:7px;font-size:12px;font-family:inherit;}
+    .mfg textarea{resize:vertical;min-height:60px;}
+    .mfg input:focus,.mfg select:focus,.mfg textarea:focus{outline:none;border-color:var(--blue-mid);}
+    .modal-footer{display:flex;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--gray-bd);}
+    .btn-cancel{padding:9px 18px;border:1.5px solid var(--gray-bd);border-radius:8px;background:#fff;font-size:12px;font-weight:600;cursor:pointer;}
+    .btn-save{padding:9px 18px;border:none;border-radius:8px;background:var(--blue-mid);color:#fff;font-size:12px;font-weight:700;cursor:pointer;}
+    .btn-save:hover{background:var(--blue-dark);}
+    .btn-del{padding:9px 18px;border:none;border-radius:8px;background:#fee2e2;color:var(--red);font-size:12px;font-weight:700;cursor:pointer;margin-right:auto;}
+    .btn-del:hover{background:#fca5a5;}
+    .urgency-row{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;padding-top:16px;}
+    .urgency-row input[type=checkbox]{width:15px;height:15px;accent-color:var(--red);}
+
+    /* OVERLAYS */
+    .scan-ov{display:none;position:fixed;inset:0;background:rgba(0,48,135,.88);z-index:999;flex-direction:column;align-items:center;justify-content:center;color:#fff;}
+    .scan-ov.active{display:flex;}
+    .scan-ov h2{font-size:20px;font-weight:800;margin-bottom:13px;}
+    .spbar{width:300px;background:rgba(255,255,255,.2);border-radius:20px;height:7px;overflow:hidden;margin-bottom:9px;}
+    .spfill{width:0;height:100%;background:var(--accent);border-radius:20px;transition:width .3s;}
+    .spst{font-size:12px;opacity:.8;}
+    .toast{position:fixed;bottom:26px;right:26px;color:#fff;padding:10px 18px;border-radius:9px;font-size:12px;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,.2);opacity:0;pointer-events:none;transition:opacity .3s;z-index:1000;}
+    .toast.show{opacity:1;}
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div style="background:#fff;border-radius:6px;padding:5px 12px;display:flex;align-items:center;margin-right:4px;"><img src="data:image/png;base64,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" alt="POSCO INTERNATIONAL" style="height:28px;"/></div>
+    <div class="brand-divider" style="width:1px;height:38px;background:rgba(255,255,255,.3);margin:0 14px;"></div>
+    <div class="brand-text">
+      <h1>POSCOPE</h1>
+      <p>Global Business Intelligence Platform</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <div style="display:flex;gap:7px;">
+      <span class="hbadge">📡 자동수집</span>
+      <span class="hbadge">📂 수동업로드</span>
+      <span class="hbadge">📋 SF 연동</span>
+    </div>
+    <div class="header-meta">
+      <div class="dt" id="clock"></div>
+      <div>실시간 모니터링 중</div>
+    </div>
+  </div>
+</header>
+
+<nav class="tab-nav">
+  <button class="tab-btn active" onclick="switchTab('dashboard')">📡 대시보드</button>
+  <button class="tab-btn" onclick="switchTab('upload')">📂 데이터 업로드</button>
+  <button class="tab-btn" onclick="switchTab('stats')">📊 통계 · 부서별 현황</button>
+</nav>
+
+<!-- 대시보드 -->
+<div id="tab-dashboard" class="tab-content active">
+  <div class="stats-bar">
+    <div class="stat"><div class="val" id="s-total">-</div><div class="lbl">전체 PJT</div></div>
+    <div class="divider"></div>
+    <div class="stat"><div class="val" id="s-auto">-</div><div class="lbl">자동수집</div></div>
+    <div class="divider"></div>
+    <div class="stat"><div class="val" id="s-manual">-</div><div class="lbl">수동입력</div></div>
+    <div class="divider"></div>
+    <div class="stat"><div class="val" id="s-sf">-</div><div class="lbl">SF 이력 연결</div></div>
+    <div class="divider"></div>
+    <div class="stat"><div class="val" id="s-urgent" style="color:var(--red)">-</div><div class="lbl">30일내 마감</div></div>
+    <button class="scan-btn" onclick="runScan()">🔍 지금 수집하기</button>
+  </div>
+  <div class="filter-toolbar">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="searchInput" type="text" placeholder="PJT명, 국가, 발주처, 담당자 검색..." oninput="onSearch(this.value)"/>
+    </div>
+    <select class="sort-sel" onchange="onSort(this.value)">
+      <option value="latest">최신순</option>
+      <option value="deadline">마감임박순</option>
+      <option value="size">금액 큰 순</option>
+    </select>
+    <span class="res-count" id="res-count"></span>
+  </div>
+  <div class="layout">
+    <div class="sidebar">
+      <div class="fg">
+        <h3>소스</h3>
+        <div class="chip active" onclick="setFilter(this,'src','all')">전체</div>
+        <div class="chip" onclick="setFilter(this,'src','auto')">📡 자동</div>
+        <div class="chip" onclick="setFilter(this,'src','manual')">📂 수동</div>
+      </div>
+      <div class="fg">
+        <h3>본부</h3>
+        <div class="chip active" onclick="setFilter(this,'div','all')">전체</div>
+        <div class="chip" onclick="setFilter(this,'div','steel')">철강본부</div>
+        <div class="chip" onclick="setFilter(this,'div','materials')">소재바이오본부</div>
+        <div class="chip" onclick="setFilter(this,'div','energy')">에너지사업본부</div>
+        <div class="chip" onclick="setFilter(this,'div','gas')">가스사업본부</div>
+      </div>
+      <div class="fg">
+        <h3>구분</h3>
+        <div class="chip active" onclick="setFilter(this,'kind','all')">전체</div>
+        <div class="chip" onclick="setFilter(this,'kind','PJT')">📋 PJT</div>
+        <div class="chip" onclick="setFilter(this,'kind','INQ')">📨 INQ</div>
+      </div>
+      <div class="fg">
+        <h3>지역</h3>
+        <div class="chip active" onclick="setFilter(this,'country','all')">전체</div>
+        <div class="chip" onclick="setFilter(this,'country','중동')">중동</div>
+        <div class="chip" onclick="setFilter(this,'country','동남아')">동남아</div>
+        <div class="chip" onclick="setFilter(this,'country','동아시아')">동아시아</div>
+        <div class="chip" onclick="setFilter(this,'country','남아시아')">남아시아</div>
+        <div class="chip" onclick="setFilter(this,'country','유럽')">유럽</div>
+        <div class="chip" onclick="setFilter(this,'country','아프리카')">아프리카</div>
+        <div class="chip" onclick="setFilter(this,'country','북미')">북미</div>
+        <div class="chip" onclick="setFilter(this,'country','남미')">남미</div>
+        <div class="chip" onclick="setFilter(this,'country','오세아니아')">오세아니아</div>
+        <div class="chip" onclick="setFilter(this,'country','국내')">국내</div>
+      </div>
+      <div class="fg">
+        <h3>SF 이력</h3>
+        <div class="chip active" onclick="setFilter(this,'sf','all')">전체</div>
+        <div class="chip" onclick="setFilter(this,'sf','y')">이력 있음</div>
+        <div class="chip" onclick="setFilter(this,'sf','n')">신규 거래선</div>
+      </div>
+      <div class="fg">
+        <h3>진행 상태</h3>
+        <div class="chip active" onclick="setFilter(this,'status','all')">전체</div>
+        <div class="chip" onclick="setFilter(this,'status','검토중')">검토중</div>
+        <div class="chip" onclick="setFilter(this,'status','오퍼제출')">오퍼제출</div>
+        <div class="chip" onclick="setFilter(this,'status','협상중')">협상중</div>
+        <div class="chip" onclick="setFilter(this,'status','수주')">수주</div>
+        <div class="chip" onclick="setFilter(this,'status','유찰')">유찰</div>
+      </div>
+    </div>
+    <div class="card-list" id="card-list"></div>
+    <div class="detail-panel" id="dpanel">
+      <button class="cpanel-close" onclick="closeDetail()">✕</button>
+      <div id="dcontent"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 업로드 탭 -->
+<div id="tab-upload" class="tab-content">
+  <div class="ugrid">
+    <!-- 엑셀 업로드 -->
+    <div class="ucard">
+      <h3>📊 엑셀 / CSV 업로드</h3>
+      <p>성약추진 내역, 건설사 내부 PJT 리스트 등을 업로드하면<br>자동으로 대시보드에 통합됩니다.</p>
+
+      <!-- POSCOPE 전용 형식 -->
+      <div class="poscope-import-box" onclick="document.getElementById('fi-poscope').click()">
+        <div class="di">📋</div>
+        <p>26년 프로젝트 진행현황.xlsx 불러오기</p>
+        <span>성약현황 + 수주추진현황 시트 자동 감지</span>
+      </div>
+      <input type="file" id="fi-poscope" class="fi" accept=".xlsx,.xls" onchange="importPoscopeExcel(event)"/>
+
+      <!-- 일반 형식 -->
+      <div class="dropzone" id="dropzone"
+           onclick="document.getElementById('fi').click()"
+           ondragover="event.preventDefault();this.classList.add('over')"
+           ondragleave="this.classList.remove('over')"
+           ondrop="onDrop(event)">
+        <div class="di">📂</div>
+        <p><strong>일반 엑셀/CSV</strong> 클릭 또는 드래그</p>
+        <p style="margin-top:5px;font-size:11px;">.xlsx · .xls · .csv · 컬럼 직접 매핑</p>
+      </div>
+      <input type="file" id="fi" class="fi" accept=".xlsx,.xls,.csv" onchange="onFileSelect(event)"/>
+      <div class="pvwrap" id="pvwrap"><div style="font-size:11px;font-weight:700;margin-bottom:5px;color:var(--sub)">미리보기 (상위 5행)</div><div id="pvtbl"></div></div>
+      <div class="fmap" id="fmap">
+        <h4>컬럼 매핑</h4>
+        <div class="frow"><label>PJT명</label><select id="mp-pjt"></select></div>
+        <div class="frow"><label>국가</label><select id="mp-country"></select></div>
+        <div class="frow"><label>발주처/고객사</label><select id="mp-owner"></select></div>
+        <div class="frow"><label>강재 품목</label><select id="mp-item"></select></div>
+        <div class="frow"><label>물량(톤)</label><select id="mp-tons"></select></div>
+        <div class="frow"><label>금액</label><select id="mp-amount"></select></div>
+        <div class="frow"><label>담당자</label><select id="mp-manager"></select></div>
+        <button class="ibtn" onclick="importCards()">📥 대시보드에 가져오기</button>
+      </div>
+    </div>
+
+    <!-- 수동 입력 -->
+    <div class="ucard">
+      <h3>✏️ 건설사 내부 정보 수동 입력</h3>
+      <p>건설사 담당자에게 직접 받은 정보, 현장 미팅에서 확인한 내용 등<br>시스템에 없는 정보를 직접 등록합니다.</p>
+      <div class="mform">
+        <div class="fgrp">
+          <div class="fg2" style="flex:2"><label>PJT명 *</label><input type="text" id="m-pjt" placeholder="예: 사우디 NEOM 2단계 교량"/></div>
+          <div class="fg2"><label>본부</label><select id="m-div" onchange="syncSubBizOptions('m-div','m-subbiz')"><option value="steel">철강본부</option><option value="materials">소재바이오본부</option><option value="energy">에너지사업본부</option><option value="gas">가스사업본부</option></select></div>
+        </div>
+        <div class="fgrp">
+          <div class="fg2"><label>세부사업</label><select id="m-subbiz"></select></div>
+          <div class="fg2"><label>구분</label><select id="m-kind"><option value="PJT">📋 PJT</option><option value="INQ">📨 INQ(문의/오프테이크 등)</option></select></div>
+        </div>
+        <div class="fgrp">
+          <div class="fg2"><label>국가</label><input type="text" id="m-country" placeholder="예: 사우디아라비아"/></div>
+          <div class="fg2"><label>발주처/거래선</label><input type="text" id="m-owner" placeholder="예: NEOM Company"/></div>
+        </div>
+        <div class="fgrp">
+          <div class="fg2"><label>품목</label><input type="text" id="m-item" placeholder="예: H형강, 후판"/></div>
+          <div class="fg2"><label>예상 물량</label><input type="text" id="m-tons" placeholder="예: 5,000톤"/></div>
+        </div>
+        <div class="fgrp">
+          <div class="fg2"><label>예상 규모</label><input type="text" id="m-size" placeholder="예: 약 $50M"/></div>
+          <div class="fg2"><label>마감일</label><input type="date" id="m-deadline"/></div>
+        </div>
+        <div class="fgrp">
+          <div class="fg2"><label>당사 담당자</label><input type="text" id="m-manager" placeholder="예: 김철수 차장"/></div>
+          <div class="fg2"><label>진행 상태</label><select id="m-status"><option value="검토중">검토중</option><option value="오퍼제출">오퍼제출</option><option value="협상중">협상중</option><option value="수주">수주</option><option value="유찰">유찰</option></select></div>
+        </div>
+        <div class="fg2"><label>지역 구분 (필터)</label><select id="m-region"><option value="">-- 선택 --</option><option>중동</option><option>동남아</option><option>동아시아</option><option>남아시아</option><option>유럽</option><option>아프리카</option><option>북미</option><option>남미</option><option>오세아니아</option><option>국내</option></select></div>
+        <div class="fg2"><label>정보 출처 / 메모</label><textarea id="m-memo" placeholder="예: OO건설 김부장에게 직접 입수. 8월 입찰 예정, 한국산 선호."></textarea></div>
+        <button class="abtn" onclick="addManual()">+ 대시보드에 추가</button>
+      </div>
+    </div>
+  </div>
+  <div class="uhist">
+    <h3>📋 업로드 이력</h3>
+    <div id="hlist"><div style="font-size:12px;color:var(--sub);text-align:center;padding:14px;">아직 업로드 이력이 없습니다.</div></div>
+  </div>
+</div>
+
+<!-- 통계 · 부서별 현황 탭 -->
+<div id="tab-stats" class="tab-content">
+  <div style="margin-bottom:18px">
+    <div style="font-size:16px;font-weight:800;margin-bottom:6px;">🏢 부서별 현황</div>
+    <div style="font-size:12px;color:var(--sub);margin-bottom:16px;">각 부서 카드를 클릭하면 상세 진행현황 페이지로 이동합니다.</div>
+    <div class="dept-cards">
+      <a class="dept-card c" href="/dept/steel" target="_blank">
+        <div class="dc-icon">🔩</div>
+        <div class="dc-title">철강본부</div>
+        <div class="dc-sub">H형강 · 후판 · 강관 등 건설/인프라용 강재</div>
+        <div class="dc-stats" id="dc-steel">
+          <div class="dc-stat"><div class="v">-</div><div class="l">전체 PJT</div></div>
+          <div class="dc-stat"><div class="v" style="color:var(--green)">-</div><div class="l">수주</div></div>
+          <div class="dc-stat"><div class="v" style="color:var(--blue-mid)">-</div><div class="l">추진중</div></div>
+        </div>
+      </a>
+      <a class="dept-card a" href="/dept/materials" target="_blank">
+        <div class="dc-icon">🌾</div>
+        <div class="dc-title">소재바이오본부</div>
+        <div class="dc-sub">곡물 · 비료 · 팜오일 · 이차전지 소재 트레이딩</div>
+        <div class="dc-stats" id="dc-materials">
+          <div class="dc-stat"><div class="v">-</div><div class="l">전체 PJT</div></div>
+          <div class="dc-stat"><div class="v" style="color:var(--green)">-</div><div class="l">수주</div></div>
+          <div class="dc-stat"><div class="v" style="color:var(--blue-mid)">-</div><div class="l">추진중</div></div>
+        </div>
+      </a>
+      <a class="dept-card e" href="/dept/energy" target="_blank">
+        <div class="dc-icon">⚡</div>
+        <div class="dc-title">에너지사업본부</div>
+        <div class="dc-sub">LNG 트레이딩 · 터미널 · 발전 · 신재생</div>
+        <div class="dc-stats" id="dc-energy">
+          <div class="dc-stat"><div class="v">-</div><div class="l">전체 PJT</div></div>
+          <div class="dc-stat"><div class="v" style="color:var(--green)">-</div><div class="l">수주</div></div>
+          <div class="dc-stat"><div class="v" style="color:var(--blue-mid)">-</div><div class="l">추진중</div></div>
+        </div>
+      </a>
+      <a class="dept-card g" href="/dept/gas" target="_blank">
+        <div class="dc-icon">🛢️</div>
+        <div class="dc-title">가스사업본부</div>
+        <div class="dc-sub">가스전 E&P · 가스개발 · 가스전운영</div>
+        <div class="dc-stats" id="dc-gas">
+          <div class="dc-stat"><div class="v">-</div><div class="l">전체 PJT</div></div>
+          <div class="dc-stat"><div class="v" style="color:var(--green)">-</div><div class="l">수주</div></div>
+          <div class="dc-stat"><div class="v" style="color:var(--blue-mid)">-</div><div class="l">추진중</div></div>
+        </div>
+      </a>
+    </div>
+  </div>
+  <div class="chart-grid">
+    <div class="chart-card">
+      <h3>🌍 지역별 분포</h3>
+      <div class="chart-wrap"><canvas id="chartRegion"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>📋 진행 상태 파이프라인</h3>
+      <div class="chart-wrap"><canvas id="chartStatus"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>🏢 본부별 분포</h3>
+      <div class="chart-wrap"><canvas id="chartDiv"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>📡 수집 소스별</h3>
+      <div class="chart-wrap"><canvas id="chartSource"></canvas></div>
+    </div>
+  </div>
+  <div class="deadline-card">
+    <h3>⏰ 마감 임박 프로젝트 (60일 이내)</h3>
+    <div id="deadlineList"><div style="font-size:12px;color:var(--sub);text-align:center;padding:14px;">데이터를 로드 중입니다...</div></div>
+  </div>
+  <div class="deadline-card" style="margin-top:22px;">
+    <h3>📑 보고서 추출</h3>
+    <div style="font-size:12px;color:var(--sub);margin-bottom:14px;">담당자·본부·상태·기간을 필터링해 현재 화면 기준 PJT/INQ 현황을 엑셀(.xlsx) 보고서로 내려받습니다.</div>
+    <div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:12px;">
+      <select id="rp-div" style="padding:7px 9px;border:1.5px solid var(--gray-bd);border-radius:7px;font-size:12px;">
+        <option value="all">전체 본부</option>
+        <option value="steel">철강본부</option>
+        <option value="materials">소재바이오본부</option>
+        <option value="energy">에너지사업본부</option>
+        <option value="gas">가스사업본부</option>
+      </select>
+      <input type="text" id="rp-manager" placeholder="담당자명 (비워두면 전체)" style="padding:7px 9px;border:1.5px solid var(--gray-bd);border-radius:7px;font-size:12px;flex:1;min-width:140px;"/>
+      <select id="rp-status" style="padding:7px 9px;border:1.5px solid var(--gray-bd);border-radius:7px;font-size:12px;">
+        <option value="all">전체 상태</option>
+        <option value="검토중">검토중</option>
+        <option value="오퍼제출">오퍼제출</option>
+        <option value="협상중">협상중</option>
+        <option value="수주">수주</option>
+        <option value="유찰">유찰</option>
+      </select>
+      <input type="date" id="rp-from" style="padding:7px 9px;border:1.5px solid var(--gray-bd);border-radius:7px;font-size:12px;" title="마감일 시작"/>
+      <input type="date" id="rp-to" style="padding:7px 9px;border:1.5px solid var(--gray-bd);border-radius:7px;font-size:12px;" title="마감일 종료"/>
+    </div>
+    <button class="scan-btn" style="margin-left:0;" onclick="exportReport()">📥 엑셀 보고서 다운로드</button>
+  </div>
+</div>
+
+<!-- 편집 모달 -->
+<div class="modal-bg" id="editModal">
+  <div class="modal">
+    <h3>✏️ 프로젝트 정보 수정</h3>
+    <div class="mfgrp">
+      <div class="mfg" style="flex:2"><label>PJT명 *</label><input type="text" id="e-pjt" placeholder="프로젝트명"/></div>
+      <div class="mfg"><label>본부</label><select id="e-div" onchange="syncSubBizOptions('e-div','e-subbiz')"><option value="steel">철강본부</option><option value="materials">소재바이오본부</option><option value="energy">에너지사업본부</option><option value="gas">가스사업본부</option></select></div>
+    </div>
+    <div class="mfgrp">
+      <div class="mfg"><label>세부사업</label><select id="e-subbiz"></select></div>
+      <div class="mfg"><label>구분</label><select id="e-kind"><option value="PJT">📋 PJT</option><option value="INQ">📨 INQ</option></select></div>
+    </div>
+    <div class="mfgrp">
+      <div class="mfg"><label>당사 담당자</label><input type="text" id="e-manager" placeholder="예: 김철수 차장"/></div>
+      <div class="mfg"><label>진행 상태</label><select id="e-status"><option value="검토중">검토중</option><option value="오퍼제출">오퍼제출</option><option value="협상중">협상중</option><option value="수주">수주</option><option value="유찰">유찰</option></select></div>
+    </div>
+    <div class="mfgrp">
+      <div class="mfg"><label>지역 그룹 (필터용)</label><select id="e-country"><option value="">-- 선택 --</option><option>중동</option><option>동남아</option><option>동아시아</option><option>남아시아</option><option>유럽</option><option>아프리카</option><option>북미</option><option>남미</option><option>오세아니아</option><option>국내</option></select></div>
+    </div>
+    <div class="mfgrp">
+      <div class="mfg"><label>구체적 국가/지역</label><input type="text" id="e-region" placeholder="예: 사우디아라비아"/></div>
+      <div class="mfg"><label>발주처</label><input type="text" id="e-owner" placeholder="예: NEOM Company"/></div>
+    </div>
+    <div class="mfgrp">
+      <div class="mfg"><label>EPC</label><input type="text" id="e-epc" placeholder="예: 삼성물산 / Hyundai E&C"/></div>
+      <div class="mfg"><label>강재 품목</label><input type="text" id="e-steel" placeholder="예: H형강, 후판"/></div>
+    </div>
+    <div class="mfgrp">
+      <div class="mfg"><label>예상 물량</label><input type="text" id="e-tons" placeholder="예: 5,000톤"/></div>
+      <div class="mfg"><label>예상 규모</label><input type="text" id="e-size" placeholder="예: 약 $50M"/></div>
+    </div>
+    <div class="mfgrp">
+      <div class="mfg"><label>마감일</label><input type="date" id="e-deadline"/></div>
+      <div class="mfg">
+        <div class="urgency-row"><input type="checkbox" id="e-urgency"/><label for="e-urgency" style="color:var(--red)">⚠️ 긴급 마감 표시</label></div>
+      </div>
+    </div>
+    <div class="mfgrp">
+      <div class="mfg"><label>메모</label><textarea id="e-memo" placeholder="추가 메모, 출처, 현장 상황 등"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-del" onclick="deleteProject(editId)">🗑️ 삭제</button>
+      <button class="btn-cancel" onclick="closeEdit()">취소</button>
+      <button class="btn-save" onclick="saveEdit()">💾 저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="scan-ov" id="scanOv">
+  <h2>🛰️ POSCOPE 정찰 중...</h2>
+  <div class="spbar"><div class="spfill" id="spfill"></div></div>
+  <div class="spst" id="spst">소스 연결 중...</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── 시계 ──────────────────────────────────────────
+function updateClock(){const n=new Date();document.getElementById('clock').textContent=n.toLocaleDateString('ko-KR')+' '+n.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});}
+updateClock();setInterval(updateClock,1000);
+
+// ── 탭 ────────────────────────────────────────────
+function switchTab(t){
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',['dashboard','upload','stats'][i]===t));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+  if(t==='stats')renderCharts();
+}
+function showToast(m,err=false){const t=document.getElementById('toast');t.textContent=m;t.style.background=err?'var(--red)':'var(--green)';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200);}
+
+// ── 데이터 ────────────────────────────────────────
+let DATA=[],selId=null,hist=[],parsedRows=null,headers=[],fileNameForImport='';
+let flt={src:'all',div:'all',country:'all',sf:'all',status:'all',kind:'all'};
+let searchQ='',sortBy='latest';
+
+const DIV_LABELS={steel:'철강본부',materials:'소재바이오본부',energy:'에너지사업본부',gas:'가스사업본부'};
+function divLabel(d){return DIV_LABELS[d]||'철강본부';}
+const DIV_TAG_CLS={steel:'tc',materials:'ta',energy:'te',gas:'tg'};
+
+const SUB_BUSINESS_OPTIONS={
+  steel:['에너지인프라강재사업','열연조강사업','후판선재사업','냉연사업','스테인리스사업','자동차소재사업','모빌리티사업'],
+  materials:['식량사업','원료소재사업','산업소재사업'],
+  energy:['LNG사업','터미널사업','발전사업개발','에너지운영'],
+  gas:['E&P사업','가스개발사업','가스전운영'],
+};
+// 2025 회사 브로셔 연락처 기준 국가 → 현지 법인/지점 매핑 (주요 진출국 기준, 100% 전체 커버는 아님)
+const COUNTRY_OFFICES={
+  '미국':{name:'미국 무역법인 (Teaneck, NJ)',addr:'300 Frank W. Burr Blvd., Suite 23, Teaneck, NJ 07666, USA',tel:'+1-201-591-8000'},
+  '캐나다':{name:'토론토 지점',addr:'90 Allstate Pkwy., Suite 402, Markham, ON L3R 6H3, Canada',tel:'+1-365-625-5323'},
+  '멕시코':{name:'멕시코 무역법인',addr:'Santa Fe, Álvaro Obregón, CDMX, Mexico',tel:'+52-55-5081-1770'},
+  '브라질':{name:'쌍파울루 지사',addr:'Av. Paulista 777, Conj 71, Bela Vista, São Paulo, Brazil',tel:'+55-11-3285-5699'},
+  '페루':{name:'리마 지사',addr:'Av. Victor Andrés Belaúnde 147, San Isidro, Lima, Peru',tel:'+51-1-221-4244'},
+  '아르헨티나':{name:'부에노스아이레스 지사',addr:'Av. Olazábal 1515, Piso 12, Buenos Aires, Argentina',tel:'+54-11-5238-1244'},
+  '콜롬비아':{name:'보고타 지사',addr:'Carrera 9 No.113-52, Bogotá, Colombia',tel:'+57-601-603-0909'},
+  '파나마':{name:'파나마 지사',addr:'Oceania Business Plaza, Punta Pacífica, Panamá',tel:'+507-282-0042'},
+  '독일':{name:'독일 무역법인',addr:'Rahmannstraße 3, 65760 Eschborn, Germany',tel:'+49-6196-93403-10'},
+  '이탈리아':{name:'이태리 무역법인',addr:'Viale Francesco Restelli 3/1, 20124 Milano, Italy',tel:'+39-02-3930-9221'},
+  '영국':{name:'런던 지사',addr:'Swan Court, 11 Worple Rd., London SW19 4JS, UK',tel:'+44-208-336-9131'},
+  '스페인':{name:'마드리드 지사',addr:'Paseo de la Castellana 135, 28046 Madrid, Spain',tel:'+34-91-571-0563'},
+  '루마니아':{name:'부카레스트 지사',addr:'Global City Business Park, Voluntari, Romania',tel:'+40-371-113-113'},
+  '폴란드':{name:'바르샤바 지사',addr:'Postepu 21A, 02-676 Warsaw, Poland',tel:'+48-22-645-1575'},
+  '체코':{name:'프라하 사무소',addr:'Pobrezni 620/3, 186 00 Praha 8, Czech Republic',tel:'+420-224-225-538'},
+  '우크라이나':{name:'우크라이나 무역법인 / 키예프 지사',addr:'8 Illinskaya St., 04070 Kyiv, Ukraine',tel:'+38-044-537-4205'},
+  '튀르키예':{name:'이스탄불 지사',addr:'Iz Plaza Giz, Maslak, Sarıyer, Istanbul, Turkey',tel:'+90-212-290-7340'},
+  '러시아':{name:'모스크바 지사',addr:'12 Krasnopresnenskaya Naberezhnaya, Moscow, Russia',tel:'+7-915-052-4446'},
+  '일본':{name:'일본 무역법인 (도쿄)',addr:'POSCO Tokyo Bldg. 5F, Ginza, Chuo-ku, Tokyo, Japan',tel:'+81-3-6260-4900'},
+  '싱가포르':{name:'싱가포르 무역법인',addr:'9 Temasek Boulevard, Suntec Tower Two, Singapore',tel:'+65-6333-5507'},
+  '베트남':{name:'베트남 무역법인 (호치민) / 하노이 지점',addr:'Opal Office Building, Ho Chi Minh City, Vietnam',tel:'+84-28-3821-7740'},
+  '말레이시아':{name:'말레이시아 무역법인',addr:'CIMB Hub, Kuala Lumpur, Malaysia',tel:'+60-3-2161-8033'},
+  '인도네시아':{name:'인도네시아 무역법인',addr:'Pacific Century Place Tower, SCBD, South Jakarta, Indonesia',tel:'+62-21-8086-4020'},
+  '태국':{name:'태국 무역법인',addr:'Emporium Tower, Bangkok, Thailand',tel:'+66-2-033-7000'},
+  '인도':{name:'인도 무역법인 (구르가온)',addr:'Milestone Experion Center, Gurgaon, Haryana, India',tel:'+91-124-4498-122'},
+  '필리핀':{name:'마닐라 지사',addr:'BDO Towers Valero, Makati City, Philippines',tel:'+63-2-8818-1031'},
+  '방글라데시':{name:'다카 지사',addr:'Concord Bikis Tower, Dhaka, Bangladesh',tel:'+880-2-5505-2246'},
+  '미얀마':{name:'미얀마 무역법인',addr:'Maha Land, Yankin Township, Yangon, Myanmar',tel:'+95-1-865-8162'},
+  '대만':{name:'타이페이 지사',addr:'Songren Rd., Xinyi District, Taipei, Taiwan',tel:'+886-2-8786-1522'},
+  '호주':{name:'시드니 지사',addr:'44 Market St., Sydney NSW, Australia',tel:'+61-2-9290-2222'},
+  '카자흐스탄':{name:'알마티 지사',addr:'Nurly-Tau Business Center, Almaty, Kazakhstan',tel:'+7-727-311-0321'},
+  'UAE':{name:'두바이 지사',addr:'Arenco Tower, Dubai Media City, Dubai, UAE',tel:'+971-4-370-5509'},
+  '이란':{name:'테헤란 사무소',addr:'Ariafar Blvd., Tehran, Iran',tel:'+98-21-44295347'},
+  '파키스탄':{name:'라호르 사무소',addr:'Gulberg 2, Lahore, Pakistan',tel:''},
+  '사우디아라비아':{name:'담맘 지사',addr:'Eastern Cement Tower, AlKhobar, Saudi Arabia',tel:'+966-13-823-8886'},
+  '모로코':{name:'모로코 지사',addr:'Immeuble Centro, Casablanca, Morocco',tel:'+212-665-82-2688'},
+  '이집트':{name:'카이로 지사',addr:'New Maadi, Cairo, Egypt',tel:'+20-2-2519-5062'},
+  '알제리':{name:'알제리 사무소',addr:'Immeuble Zafrania, Algiers, Algeria',tel:'+213-023-48-47-60'},
+  '중국':{name:'상해 무역법인',addr:'Dongyin Center, Shanghai, China',tel:'+86-21-2211-3500'},
+  '남아프리카':{name:'요하네스버그 지사',addr:'Cedar Office Estate, Fourways, Johannesburg, South Africa',tel:'+27-11-784-1326'},
+  '케냐':{name:'나이로비 사무소',addr:'Mirage Building, Westlands, Nairobi, Kenya',tel:'+254-20-331-6108'},
+  '나이지리아':{name:'라고스 사무소',addr:'Churchgate Tower 2, Victoria Island, Lagos, Nigeria',tel:''},
+};
+function lookupOffice(countryName){
+  if(!countryName)return null;
+  if(COUNTRY_OFFICES[countryName])return COUNTRY_OFFICES[countryName];
+  const found=Object.keys(COUNTRY_OFFICES).find(k=>countryName.includes(k)||k.includes(countryName));
+  return found?COUNTRY_OFFICES[found]:null;
+}
+
+function syncSubBizOptions(divSelId,subSelId){
+  const div=document.getElementById(divSelId).value;
+  const subSel=document.getElementById(subSelId);
+  const cur=subSel.value;
+  subSel.innerHTML=SUB_BUSINESS_OPTIONS[div].map(s=>`<option value="${s}">${s}</option>`).join('');
+  if(SUB_BUSINESS_OPTIONS[div].includes(cur))subSel.value=cur;
+}
+
+// ── 카드 렌더 ─────────────────────────────────────
+function renderCards(){
+  let filtered=DATA.filter(p=>{
+    if(flt.src==='auto'&&!p.isAuto)return false;
+    if(flt.src==='manual'&&p.isAuto)return false;
+    if(flt.div!=='all'&&p.div!==flt.div)return false;
+    if(flt.country!=='all'&&p.country!==flt.country)return false;
+    if(flt.sf==='y'&&p.sfHistory.length===0)return false;
+    if(flt.sf==='n'&&p.sfHistory.length>0)return false;
+    if(flt.status!=='all'&&(p.status||'검토중')!==flt.status)return false;
+    if(flt.kind!=='all'&&(p.kind||'PJT')!==flt.kind)return false;
+    if(searchQ){
+      const q=searchQ.toLowerCase();
+      const text=((p.title||'')+' '+(p.country||'')+' '+(p.region||'')+' '+(p.owner||'')+' '+(p.steel||'')+' '+(p.manager||'')+' '+(p.subBusiness||'')).toLowerCase();
+      if(!text.includes(q))return false;
+    }
+    return true;
+  });
+  filtered.sort((a,b)=>{
+    if(sortBy==='deadline'){const da=a.deadline||'9999-12-31',db_=b.deadline||'9999-12-31';return da.localeCompare(db_);}
+    if(sortBy==='size'){const ps=s=>{const m=(s||'').match(/[\d,]+/);return m?parseInt(m[0].replace(/,/g,''),10):0;};return ps(b.size)-ps(a.size);}
+    return b.id-a.id;
+  });
+  document.getElementById('res-count').textContent=`${filtered.length} / ${DATA.length}건`;
+  document.getElementById('card-list').innerHTML=filtered.length?filtered.map(p=>{
+    const st=p.status||'검토중';
+    const kind=p.kind||'PJT';
+    return `<div class="card${selId===p.id?' selected':''}${!p.isAuto?' manual':''}" onclick="openDetail(${p.id})">
+      ${p.isNew&&p.isAuto?'<div class="nbadge">NEW</div>':''}
+      ${!p.isAuto?'<div class="mbadge">수동입력</div>':''}
+      <div class="ct"><div class="ctitle">${hl(p.title)}</div>
+        <span class="tag ${DIV_TAG_CLS[p.div]||'tc'}">${divLabel(p.div)}</span>
+        <span class="tag ${kind==='INQ'?'tinq':'tpjt'}" style="font-size:10px;padding:2px 7px">${kind==='INQ'?'📨 INQ':'📋 PJT'}</span></div>
+      ${p.subBusiness?`<div style="font-size:10px;color:var(--sub);margin-top:2px">${p.subBusiness}</div>`:''}
+      <div class="cmeta">
+        <span>🌍 ${p.region||p.country||'-'}</span>
+        <span>⚖️ ${p.size||'-'}</span>
+        <span>🔩 ${p.steel||'-'}</span>
+        <span>${p.isAuto?'📡 '+p.source:'✏️ 수동'}</span>
+        ${p.manager?`<span>👤 ${p.manager}</span>`:''}
+      </div>
+      <div class="cbottom">
+        <div class="sfb${p.sfHistory.length===0?' none':''}">${p.sfHistory.length>0?`📋 SF ${p.sfHistory.length}건`:'📋 신규'}</div>
+        <span class="tag st-${st}" style="font-size:10px;padding:2px 7px">${st}</span>
+        <div class="dl${p.urgency?' urg':''}" style="margin-left:auto">마감 ${p.deadline||'-'}${p.urgency?' ⚠️':''}</div>
+      </div>
+    </div>`;
+  }).join(''):'<div style="font-size:13px;color:var(--sub);text-align:center;padding:40px 20px;">검색 결과가 없습니다.</div>';
+
+  const today=new Date().toISOString().split('T')[0];
+  const in30=new Date(Date.now()+30*86400000).toISOString().split('T')[0];
+  document.getElementById('s-total').textContent=DATA.length;
+  document.getElementById('s-auto').textContent=DATA.filter(x=>x.isAuto).length;
+  document.getElementById('s-manual').textContent=DATA.filter(x=>!x.isAuto).length;
+  document.getElementById('s-sf').textContent=DATA.filter(x=>x.sfHistory.length>0).length;
+  document.getElementById('s-urgent').textContent=DATA.filter(x=>x.deadline&&x.deadline>=today&&x.deadline<=in30).length;
+}
+
+function hl(text){
+  if(!searchQ)return text;
+  const q=searchQ.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  return text.replace(new RegExp(q,'gi'),m=>`<mark style="background:#fef08a;border-radius:2px">${m}</mark>`);
+}
+function onSearch(v){searchQ=v.trim();renderCards();}
+function onSort(v){sortBy=v;renderCards();}
+
+// ── 상세 패널 ─────────────────────────────────────
+function openDetail(id){
+  selId=id;const p=DATA.find(x=>x.id===id);
+  document.getElementById('dpanel').classList.add('open');
+  const sfHtml=p.sfHistory.length>0
+    ?p.sfHistory.map(h=>`<div class="sfi"><div class="sd">${h.date}</div><div class="sw">👤 ${h.who}</div><div class="sm">${h.memo}</div></div>`).join('')
+    :'<div class="sfempty">Salesforce 이력 없음<br>신규 개척 필요</div>';
+  const plog=p.progressLog||[];
+  const progressHtml=plog.length>0
+    ?plog.map(h=>`<div class="sfi"><div class="sd">${h.date}</div><div class="sw">👤 ${h.author}</div><div class="sm">${h.note}</div></div>`).join('')
+    :'<div class="sfempty">담당자 진행 업데이트 없음</div>';
+  const office=lookupOffice(p.region||p.country);
+  const st=p.status||'검토중';
+  const kind=p.kind||'PJT';
+  const statuses=['검토중','오퍼제출','협상중','수주','유찰'];
+  document.getElementById('dcontent').innerHTML=`
+    <h2>${p.title}</h2>
+    <div style="margin:7px 0 10px">
+      <span class="tag ${DIV_TAG_CLS[p.div]||'tc'}">${divLabel(p.div)}</span>
+      <span class="tag ${kind==='INQ'?'tinq':'tpjt'}">${kind==='INQ'?'📨 INQ':'📋 PJT'}</span>
+      ${p.subBusiness?`<span style="font-size:11px;color:var(--sub);margin-left:4px">${p.subBusiness}</span>`:''}<br>
+    <span style="font-size:10px;color:var(--sub)">${p.isAuto?'📡 '+p.source+' · '+p.sourceDate:'✏️ 수동입력'}</span></div>
+    <div class="detail-actions">
+      <button class="edit-btn" onclick="openEdit(${p.id})">✏️ 수정</button>
+      <button class="del-btn" onclick="deleteProject(${p.id})">🗑️ 삭제</button>
+    </div>
+    <div style="margin-bottom:12px">
+      <div style="font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">진행 상태</div>
+      <div class="status-row">
+        ${statuses.map(s=>`<span class="st-pill tag st-${s}${s===st?' active':''}" onclick="updateStatus(${p.id},'${s}')">${s}</span>`).join('')}
+      </div>
+    </div>
+    ${p.aiSummary?`<div class="ais"><div class="al">🤖 AI 분석 요약</div><p>${p.aiSummary}</p></div>`:''}
+    <div class="ds"><h4>프로젝트 정보</h4>
+      <div class="dr"><span class="k">담당자</span><span class="v">${p.manager||'미지정'}</span></div>
+      <div class="dr"><span class="k">발주처/거래선</span><span class="v">${p.owner||'-'}</span></div>
+      <div class="dr"><span class="k">EPC</span><span class="v">${p.epc||'-'}</span></div>
+      <div class="dr"><span class="k">국가</span><span class="v">${p.region||p.country||'-'}</span></div>
+      <div class="dr"><span class="k">규모</span><span class="v">${p.size||'-'}</span></div>
+      <div class="dr"><span class="k">품목</span><span class="v">${p.steel||'-'}</span></div>
+      <div class="dr"><span class="k">예상 물량</span><span class="v">${p.tons||'-'}</span></div>
+      <div class="dr"><span class="k">마감일</span><span class="v${p.urgency?' dl urg':''}">${p.deadline||'-'}${p.urgency?' ⚠️':''}</span></div>
+      ${p.memo?`<div class="dr"><span class="k">메모</span><span class="v" style="text-align:left">${p.memo}</span></div>`:''}
+    </div>
+    <div class="ds"><h4>🏢 현지 유관 법인/지점</h4>
+      ${office?`<div class="dr"><span class="k">${office.name}</span><span class="v" style="text-align:left;font-weight:500">${office.addr}<br>${office.tel}</span></div>`:'<div class="sfempty">매칭되는 법인/지점 정보 없음</div>'}
+    </div>
+    <div class="ds"><h4>📝 담당자 진행 업데이트 (${plog.length}건)</h4>
+      <div class="sfh">${progressHtml}</div>
+      <div style="margin-top:9px;display:flex;flex-direction:column;gap:6px">
+        <input type="text" id="pg-author" placeholder="작성자 (예: 김철수 차장)" style="padding:7px 9px;border:1.5px solid var(--gray-bd);border-radius:7px;font-size:12px;" value="${p.manager||''}"/>
+        <textarea id="pg-note" placeholder="진행 업데이트 내용을 입력하세요" style="padding:7px 9px;border:1.5px solid var(--gray-bd);border-radius:7px;font-size:12px;min-height:50px;resize:vertical;"></textarea>
+        <button class="edit-btn" onclick="addProgress(${p.id})">＋ 업데이트 추가</button>
+      </div>
+    </div>
+    <div class="ds"><h4>📋 Salesforce 이력 (${p.sfHistory.length}건)</h4>
+      <div class="sfh">${sfHtml}</div>
+    </div>
+    <button class="tbtn" onclick="sendTeams(${p.id})">💬 Teams 채널에 공유</button>`;
+  renderCards();
+}
+
+async function addProgress(id){
+  const author=document.getElementById('pg-author').value.trim();
+  const note=document.getElementById('pg-note').value.trim();
+  if(!author||!note){showToast('⚠️ 작성자와 업데이트 내용을 입력하세요.',true);return;}
+  try{
+    const res=await fetch(`/api/projects/${id}/progress`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({author,note})});
+    const updated=await res.json();
+    if(!res.ok){showToast(`⚠️ ${updated.error||'추가 실패'}`,true);return;}
+    const idx=DATA.findIndex(x=>x.id===id);
+    if(idx>=0)DATA[idx]=updated;
+    openDetail(id);
+    showToast('✅ 진행 업데이트가 추가됐습니다.');
+  }catch(e){showToast('⚠️ 추가 실패',true);}
+}
+function closeDetail(){selId=null;document.getElementById('dpanel').classList.remove('open');renderCards();}
+
+async function updateStatus(id,status){
+  try{
+    const res=await fetch(`/api/projects/${id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});
+    const updated=await res.json();
+    if(!res.ok){showToast(`⚠️ ${updated.error||'실패'}`,true);return;}
+    const idx=DATA.findIndex(x=>x.id===id);
+    if(idx>=0)DATA[idx]=updated;
+    openDetail(id);
+    showToast(`✅ 상태 변경: ${status}`);
+  }catch(e){showToast('⚠️ 상태 변경 실패',true);}
+}
+
+async function sendTeams(id){
+  const p=DATA.find(x=>x.id===id);
+  try{
+    const res=await fetch(`/api/projects/${id}/teams-share`,{method:'POST'});
+    const data=await res.json();
+    showToast(data.ok?`✅ "${p.title}" — ${data.message}`:`⚠️ ${data.message}`);
+  }catch(e){showToast('⚠️ Teams 공유 요청 실패',true);}
+}
+function setFilter(el,type,val){el.closest('.fg').querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');flt[type]=val;renderCards();}
+
+// ── 편집 모달 ─────────────────────────────────────
+let editId=null;
+function openEdit(id){
+  editId=id;const p=DATA.find(x=>x.id===id);if(!p)return;
+  document.getElementById('e-pjt').value=p.title||'';
+  document.getElementById('e-div').value=p.div||'steel';
+  syncSubBizOptions('e-div','e-subbiz');
+  document.getElementById('e-subbiz').value=p.subBusiness||'';
+  document.getElementById('e-kind').value=p.kind||'PJT';
+  document.getElementById('e-manager').value=p.manager||'';
+  document.getElementById('e-status').value=p.status||'검토중';
+  document.getElementById('e-country').value=p.country||'';
+  document.getElementById('e-region').value=p.region||'';
+  document.getElementById('e-owner').value=p.owner||'';
+  document.getElementById('e-epc').value=p.epc||'';
+  document.getElementById('e-steel').value=p.steel||'';
+  document.getElementById('e-tons').value=p.tons||'';
+  document.getElementById('e-size').value=p.size||'';
+  document.getElementById('e-deadline').value=p.deadline||'';
+  document.getElementById('e-urgency').checked=!!p.urgency;
+  document.getElementById('e-memo').value=p.memo||'';
+  document.getElementById('editModal').classList.add('open');
+}
+function closeEdit(){document.getElementById('editModal').classList.remove('open');editId=null;}
+async function saveEdit(){
+  if(!editId)return;
+  const title=document.getElementById('e-pjt').value.trim();
+  if(!title){showToast('⚠️ PJT명을 입력하세요.',true);return;}
+  const body={
+    title,div:document.getElementById('e-div').value,status:document.getElementById('e-status').value,
+    sub_business:document.getElementById('e-subbiz').value,kind:document.getElementById('e-kind').value,
+    manager:document.getElementById('e-manager').value,
+    country:document.getElementById('e-country').value,region:document.getElementById('e-region').value,
+    owner:document.getElementById('e-owner').value,epc:document.getElementById('e-epc').value,
+    steel:document.getElementById('e-steel').value,tons:document.getElementById('e-tons').value,
+    size:document.getElementById('e-size').value,deadline:document.getElementById('e-deadline').value,
+    urgency:document.getElementById('e-urgency').checked,memo:document.getElementById('e-memo').value,
+  };
+  try{
+    const res=await fetch(`/api/projects/${editId}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const updated=await res.json();
+    if(!res.ok){showToast(`⚠️ ${updated.error||'저장 실패'}`,true);return;}
+    const idx=DATA.findIndex(x=>x.id===editId);
+    if(idx>=0)DATA[idx]=updated;
+    const prev=editId;closeEdit();renderCards();
+    if(selId===prev)openDetail(prev);
+    showToast(`✅ "${updated.title}" 저장됐습니다!`);
+  }catch(e){showToast('⚠️ 저장 실패',true);}
+}
+async function deleteProject(id){
+  const p=DATA.find(x=>x.id===id);if(!p)return;
+  if(!confirm(`"${p.title}"\n\n정말 삭제하시겠습니까? 되돌릴 수 없습니다.`))return;
+  try{
+    const res=await fetch(`/api/projects/${id}`,{method:'DELETE'});
+    if(!res.ok){showToast('⚠️ 삭제 실패',true);return;}
+    DATA=DATA.filter(x=>x.id!==id);
+    if(selId===id){selId=null;document.getElementById('dpanel').classList.remove('open');}
+    closeEdit();renderCards();
+    showToast('🗑️ 프로젝트가 삭제됐습니다.');
+  }catch(e){showToast('⚠️ 삭제 실패',true);}
+}
+document.getElementById('editModal').addEventListener('click',e=>{if(e.target===document.getElementById('editModal'))closeEdit();});
+
+// ── 데이터 로드 ───────────────────────────────────
+async function loadProjects(){
+  const res=await fetch('/api/projects');DATA=await res.json();renderCards();
+}
+async function loadUploadHistory(){
+  const res=await fetch('/api/upload-history');hist=await res.json();
+  document.getElementById('hlist').innerHTML=hist.length
+    ?hist.map(h=>`<div class="hitem"><div class="hicon ${h.type==='excel'?'xl':'mn'}">${h.type==='excel'?'📊':'✏️'}</div><div class="hinfo"><strong>${h.name}</strong><span>${h.date}</span></div><div class="hcnt">${h.cnt}건</div></div>`).join('')
+    :'<div style="font-size:12px;color:var(--sub);text-align:center;padding:14px;">아직 업로드 이력이 없습니다.</div>';
+}
+
+// ── 자동 수집 ─────────────────────────────────────
+function runScan(){
+  const ov=document.getElementById('scanOv'),bar=document.getElementById('spfill'),st=document.getElementById('spst');
+  const steps=[[10,'KOICA ODA 포털 접속 중...'],[25,'해외건설협회 발주 목록 파싱 중...'],[44,'Google News RSS 분석 중...'],[62,'AI 강재 관련 여부 분류 중...'],[85,'Salesforce 미팅이력 매칭 중...']];
+  ov.classList.add('active');let i=0;
+  const crawlPromise=fetch('/api/crawl',{method:'POST'}).then(r=>r.json()).catch(()=>({error:'요청 실패'}));
+  const tick=()=>{if(i<steps.length){bar.style.width=steps[i][0]+'%';st.textContent=steps[i][1];i++;setTimeout(tick,520+Math.random()*320);}};
+  tick();
+  crawlPromise.then(async result=>{
+    bar.style.width='100%';st.textContent='완료!';
+    await loadProjects();
+    setTimeout(()=>{ov.classList.remove('active');if(result.error)showToast(`⚠️ 수집 실패: ${result.error}`,true);else showToast(`🛰️ 정찰 완료 — 신규 ${result.added}건 포착!`);},500);
+  });
+}
+
+// ── POSCOPE 전용 엑셀 불러오기 ──────────────────────
+async function importPoscopeExcel(e){
+  const file=e.target.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=async function(ev){
+    const wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array'});
+    let allRows=[];
+    // 성약 현황 시트
+    if(wb.SheetNames.includes('26년 성약 현황')){
+      const ws=wb.Sheets['26년 성약 현황'];
+      const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      // 헤더: 행3 (고객사=1, 고객사구분=2, 현장명=3, 품목=4, 수주물량=5, 현장상황=13)
+      // 데이터: 행5부터 (빈행 제외)
+      for(let ri=5;ri<raw.length;ri++){
+        const row=raw[ri];
+        const title=String(row[3]||'').trim();
+        const owner=String(row[1]||'').trim();
+        if(!title&&!owner)continue;
+        if(!title)continue;
+        allRows.push({
+          title,owner,steel:String(row[4]||''),tons:String(row[5]||''),
+          memo:String(row[13]||''),status:'수주',country:'국내',
+          sourceLabel:'26년 성약 현황',
+        });
+      }
+    }
+    // 수주추진 시트
+    if(wb.SheetNames.includes('프로젝트 수주추진 현황')){
+      const ws=wb.Sheets['프로젝트 수주추진 현황'];
+      const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      // 헤더: 행4 (고객사=1, 현장명=2, 품목=3, 수량=4, 예상발주시기=5, 비고=7)
+      for(let ri=5;ri<raw.length;ri++){
+        const row=raw[ri];
+        const title=String(row[2]||'').trim();
+        const owner=String(row[1]||'').trim();
+        if(!title&&!owner)continue;
+        if(!title)continue;
+        allRows.push({
+          title,owner,steel:String(row[3]||''),tons:String(row[4]||''),
+          memo:String(row[7]||''),status:'검토중',country:'국내',
+          sourceLabel:'수주추진 현황',
+        });
+      }
+    }
+    if(allRows.length===0){showToast('⚠️ 인식된 데이터가 없습니다.',true);e.target.value='';return;}
+    // 서버에 전송
+    const payload=allRows.map(r=>({
+      title:r.title,country:r.country||'국내',owner:r.owner,
+      item:r.steel,tons:r.tons,amount:'',memo:r.memo,status:r.status,
+      sourceLabel:r.sourceLabel,
+    }));
+    try{
+      const res=await fetch('/api/projects/import-poscope',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({rows:payload,filename:file.name})});
+      const data=await res.json();
+      await Promise.all([loadProjects(),loadUploadHistory()]);
+      switchTab('dashboard');
+      showToast(`📋 성약${data.contracted||0}건 + 추진${data.pursuing||0}건 총 ${data.count}건 추가!`);
+    }catch(err){showToast('⚠️ 가져오기 실패 (서버 연결 확인)',true);}
+    e.target.value='';
+  };
+  r.readAsArrayBuffer(file);
+}
+
+// ── 일반 엑셀 업로드 ─────────────────────────────
+function onDrop(e){e.preventDefault();document.getElementById('dropzone').classList.remove('over');const f=e.dataTransfer.files[0];if(f)processFile(f);}
+function onFileSelect(e){const f=e.target.files[0];if(f)processFile(f);}
+function processFile(file){
+  const r=new FileReader();
+  r.onload=function(e){
+    const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+    if(rows.length<2){showToast('⚠️ 데이터가 없습니다.',true);return;}
+    let hr=0;for(let i=0;i<Math.min(6,rows.length);i++){if(rows[i].filter(Boolean).length>3){hr=i;break;}}
+    headers=rows[hr].map((h,i)=>h||`열${i+1}`);
+    parsedRows=rows.slice(hr+1).filter(r=>r.some(Boolean));
+    const pvRows=rows.slice(hr,hr+6);
+    const hdrs=pvRows[0].map((h,i)=>h||`열${i+1}`);
+    document.getElementById('pvtbl').innerHTML=`<table class="pvtbl"><thead><tr>${hdrs.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${pvRows.slice(1).map(r=>`<tr>${hdrs.map((_,i)=>`<td>${r[i]||''}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+    document.getElementById('pvwrap').style.display='block';
+    const hints={pjt:['PJT','프로젝트','project','현장명','명'],country:['국가','country','지역'],owner:['고객사','발주처','owner','법인'],item:['ITEM','아이템','품목','steel'],tons:['중량','톤','ton','수량','물량'],amount:['금액','amount','규모'],manager:['담당자','manager']};
+    ['pjt','country','owner','item','tons','amount','manager'].forEach(k=>{
+      const sel=document.getElementById('mp-'+k);
+      sel.innerHTML='<option value="">-- 선택 안 함 --</option>'+headers.map((h,i)=>`<option value="${i}">${h}</option>`).join('');
+      const m=headers.findIndex(h=>(hints[k]||[]).some(kw=>String(h).toLowerCase().includes(kw.toLowerCase())));
+      if(m>=0)sel.value=m;
+    });
+    document.getElementById('fmap').style.display='block';
+    fileNameForImport=file.name;
+    showToast(`✅ "${file.name}" 로드 완료 — ${parsedRows.length}행 감지`);
+  };
+  r.readAsArrayBuffer(file);
+}
+async function importCards(){
+  if(!parsedRows)return;
+  const g=id=>{const v=document.getElementById(id).value;return v===''?null:parseInt(v);};
+  const m={pjt:g('mp-pjt'),country:g('mp-country'),owner:g('mp-owner'),item:g('mp-item'),tons:g('mp-tons'),amount:g('mp-amount'),manager:g('mp-manager')};
+  const rows=parsedRows.map(row=>({
+    title:m.pjt!==null?String(row[m.pjt]||''):'',country:m.country!==null?String(row[m.country]||''):'',
+    owner:m.owner!==null?String(row[m.owner]||''):'',item:m.item!==null?String(row[m.item]||''):'',
+    tons:m.tons!==null?String(row[m.tons]||''):'',amount:m.amount!==null?String(row[m.amount]||''):''
+  })).filter(r=>r.title);
+  try{
+    const res=await fetch('/api/projects/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({rows,filename:fileNameForImport||'엑셀 업로드'})});
+    const data=await res.json();
+    await Promise.all([loadProjects(),loadUploadHistory()]);
+    switchTab('dashboard');showToast(`📥 ${data.count}건 대시보드에 추가됐습니다!`);
+  }catch(e){showToast('⚠️ 가져오기 실패',true);}
+}
+async function addManual(){
+  const pjt=document.getElementById('m-pjt').value.trim();
+  if(!pjt){showToast('⚠️ PJT명을 입력하세요.',true);return;}
+  const dl=document.getElementById('m-deadline').value;
+  const urg=dl&&dl<new Date(Date.now()+14*86400000).toISOString().split('T')[0];
+  const country=document.getElementById('m-region').value||document.getElementById('m-country').value||'미정';
+  const body={
+    title:pjt,div:document.getElementById('m-div').value,
+    subBusiness:document.getElementById('m-subbiz').value,kind:document.getElementById('m-kind').value,
+    manager:document.getElementById('m-manager').value,
+    country,region:document.getElementById('m-country').value,
+    owner:document.getElementById('m-owner').value,item:document.getElementById('m-item').value,
+    tons:document.getElementById('m-tons').value,size:document.getElementById('m-size').value,
+    deadline:dl,urgency:!!urg,memo:document.getElementById('m-memo').value,
+    status:document.getElementById('m-status').value,
+  };
+  try{
+    const res=await fetch('/api/projects',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!res.ok){const err=await res.json();showToast(`⚠️ ${err.error||'추가 실패'}`,true);return;}
+    ['m-pjt','m-country','m-owner','m-item','m-tons','m-size','m-memo','m-deadline','m-manager'].forEach(id=>document.getElementById(id).value='');
+    await Promise.all([loadProjects(),loadUploadHistory()]);
+    switchTab('dashboard');showToast(`✏️ "${pjt}" 추가됐습니다!`);
+  }catch(e){showToast('⚠️ 추가 실패',true);}
+}
+
+// ── 보고서 추출 ───────────────────────────────────
+function exportReport(){
+  const div=document.getElementById('rp-div').value;
+  const manager=document.getElementById('rp-manager').value.trim().toLowerCase();
+  const status=document.getElementById('rp-status').value;
+  const from=document.getElementById('rp-from').value;
+  const to=document.getElementById('rp-to').value;
+  const rows=DATA.filter(p=>{
+    if(div!=='all'&&p.div!==div)return false;
+    if(manager&&!(p.manager||'').toLowerCase().includes(manager))return false;
+    if(status!=='all'&&(p.status||'검토중')!==status)return false;
+    if(from&&p.deadline&&p.deadline<from)return false;
+    if(to&&p.deadline&&p.deadline>to)return false;
+    return true;
+  });
+  if(!rows.length){showToast('⚠️ 조건에 맞는 PJT가 없습니다.',true);return;}
+  const sheetRows=rows.map(p=>({
+    '본부':divLabel(p.div),'세부사업':p.subBusiness||'','구분':p.kind||'PJT',
+    'PJT명':p.title,'담당자':p.manager||'미지정','발주처/거래선':p.owner||'',
+    '국가':p.region||p.country||'','품목':p.steel||'','예상물량':p.tons||'',
+    '예상규모':p.size||'','상태':p.status||'검토중','마감일':p.deadline||'',
+    '최근 진행업데이트':(p.progressLog&&p.progressLog[0])?`[${p.progressLog[0].date}] ${p.progressLog[0].author}: ${p.progressLog[0].note}`:'',
+    'SF이력건수':p.sfHistory.length,'출처':p.isAuto?p.source:'수동입력','출처일':p.sourceDate||'',
+  }));
+  const ws=XLSX.utils.json_to_sheet(sheetRows);
+  ws['!cols']=[{wch:14},{wch:14},{wch:8},{wch:36},{wch:12},{wch:20},{wch:10},{wch:18},{wch:10},{wch:12},{wch:10},{wch:12},{wch:40},{wch:9},{wch:12},{wch:12}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'PJT현황');
+  const stamp=new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb,`POSCOPE_보고서_${stamp}.xlsx`);
+  showToast(`✅ ${rows.length}건 엑셀 보고서를 내려받았습니다.`);
+}
+
+// ── 통계 차트 ─────────────────────────────────────
+const CHART_COLORS=['#3b82f6','#f59e0b','#10b981','#ef4444','#8b5cf6','#06b6d4','#f97316','#84cc16','#ec4899','#14b8a6'];
+let chartInstances={};
+function renderCharts(){
+  Object.values(chartInstances).forEach(c=>{try{c.destroy();}catch(e){}});chartInstances={};
+
+  const regionMap={};DATA.forEach(p=>{const r=p.country||'기타';regionMap[r]=(regionMap[r]||0)+1;});
+  chartInstances.region=new Chart(document.getElementById('chartRegion'),{
+    type:'doughnut',
+    data:{labels:Object.keys(regionMap),datasets:[{data:Object.values(regionMap),backgroundColor:CHART_COLORS,borderWidth:2,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12}}}}
+  });
+
+  const stMap={'검토중':0,'오퍼제출':0,'협상중':0,'수주':0,'유찰':0};
+  DATA.forEach(p=>{const s=p.status||'검토중';if(s in stMap)stMap[s]++;});
+  chartInstances.status=new Chart(document.getElementById('chartStatus'),{
+    type:'bar',
+    data:{labels:Object.keys(stMap),datasets:[{data:Object.values(stMap),backgroundColor:['#3b82f6','#f59e0b','#f97316','#10b981','#9ca3af'],borderRadius:6}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{stepSize:1}}}}
+  });
+
+  const divMap={'철강본부':0,'소재바이오본부':0,'에너지사업본부':0,'가스사업본부':0};
+  DATA.forEach(p=>{divMap[divLabel(p.div)]++;});
+  chartInstances.div=new Chart(document.getElementById('chartDiv'),{
+    type:'bar',
+    data:{labels:Object.keys(divMap),datasets:[{data:Object.values(divMap),backgroundColor:['#3b82f6','#10b981','#f59e0b','#6b46c1'],borderRadius:6}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}
+  });
+
+  const srcMap={};DATA.forEach(p=>{const s=p.source||'기타';srcMap[s]=(srcMap[s]||0)+1;});
+  chartInstances.source=new Chart(document.getElementById('chartSource'),{
+    type:'doughnut',
+    data:{labels:Object.keys(srcMap),datasets:[{data:Object.values(srcMap),backgroundColor:CHART_COLORS.slice(3),borderWidth:2,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12}}}}
+  });
+
+  // 마감 임박
+  const today=new Date(),todayStr=today.toISOString().split('T')[0];
+  const in60=new Date(Date.now()+60*86400000).toISOString().split('T')[0];
+  const upcoming=DATA.filter(p=>p.deadline&&p.deadline>=todayStr&&p.deadline<=in60).sort((a,b)=>a.deadline.localeCompare(b.deadline));
+  document.getElementById('deadlineList').innerHTML=upcoming.length
+    ?upcoming.map(p=>{
+        const days=Math.round((new Date(p.deadline)-today)/86400000);
+        const cls=days<=7?'urgent':days<=30?'warn':'ok';
+        return `<div class="dl-item"><div class="dl-days ${cls}">D-${days}</div><div class="dl-title">${p.title}</div><div class="dl-meta">${p.deadline} · ${p.region||p.country}</div></div>`;
+      }).join('')
+    :'<div style="font-size:12px;color:var(--sub);text-align:center;padding:14px;">60일 이내 마감 프로젝트가 없습니다.</div>';
+
+  // 부서 카드 통계
+  ['steel','materials','energy','gas'].forEach(div=>{
+    const dp=DATA.filter(p=>p.div===div);
+    const won=dp.filter(p=>p.status==='수주').length;
+    const inprog=dp.filter(p=>['검토중','오퍼제출','협상중'].includes(p.status||'검토중')).length;
+    const el=document.getElementById('dc-'+div);
+    if(el){
+      el.children[0].querySelector('.v').textContent=dp.length;
+      el.children[1].querySelector('.v').textContent=won;
+      el.children[2].querySelector('.v').textContent=inprog;
+    }
+  });
+}
+
+// ── 초기화 ────────────────────────────────────────
+syncSubBizOptions('m-div','m-subbiz');
+(async function init(){await Promise.all([loadProjects(),loadUploadHistory()]);})();
+</script>
+</body>
+</html>

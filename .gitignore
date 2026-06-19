@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+tunnel.pid
+tunnel_err.txt
+tunnel_out.txt
+server_log.txt

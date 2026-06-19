@@ -1,0 +1,34 @@
+{
+  "openai_api_key": "your-openai-api-key-here",
+  "teams_webhook_url": "",
+  "salesforce": {
+    "instance_url": "",
+    "client_id": "",
+    "client_secret": "",
+    "username": "",
+    "password": "",
+    "security_token": "",
+    "history_objects": ["Task", "Event"],
+    "what_name_field": "What.Name",
+    "date_field": "ActivityDate",
+    "owner_field": "Owner.Name",
+    "memo_field": "Description",
+    "subject_field": "Subject",
+    "api_version": "v59.0"
+  },
+  "sources": {
+    "koica_oda_url": "https://www.koica.go.kr/koica_kr/945/subview.do",
+    "industry_rss": [
+      "https://www.enr.com/rss/articles/news",
+      "https://www.globalconstructionreview.com/feed/",
+      "https://www.rigzone.com/news/rss/",
+      "https://www.offshore-energy.biz/feed/",
+      "https://www.hellenicshippingnews.com/feed/",
+      "https://www.world-grain.com/rss"
+    ],
+    "regional_portals": [
+      {"name": "UNGM 국제기구 조달", "url": "https://www.ungm.org/Public/Notice"}
+    ]
+  },
+  "note": "OpenAI API 키가 없어도 크롤러가 동작합니다 (키워드 기반 필터링 사용). teams_webhook_url과 salesforce 항목을 채우면 실제 연동이 활성화됩니다. sources 항목의 URL은 실제 실행 후 0건이 나오면 조정이 필요할 수 있습니다. rigzone/offshore-energy/hellenicshippingnews/world-grain은 가스·LNG·곡물 업계지 후보로 추가했으며, 실제 0건이면 다른 무료 RSS로 교체하세요. Platts·Argus·MEED·ENR(유료기사)·GAFTA처럼 구독형 소스는 공개 API가 없어 자동수집이 불가하니 수동입력으로 보완하세요."
+}
