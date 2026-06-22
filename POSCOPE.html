@@ -217,7 +217,7 @@
     .toast.show{opacity:1;}
   </style>
 </head>
-<body><div style="background:#fff3cd;color:#856404;padding:8px 32px;font-size:12px;text-align:center;border-bottom:1px solid #ffe69c;">📌 정적 보기 전용 스냅샷 — 2026-06-19 09:43 기준 데이터 (이후 변경사항은 반영되지 않습니다. 최신 데이터·입력 기능은 사내망 서버 링크를 이용하세요)</div>
+<body><div style="background:#fff3cd;color:#856404;padding:8px 32px;font-size:12px;text-align:center;border-bottom:1px solid #ffe69c;">📌 정적 보기 전용 스냅샷 — 2026-06-22 14:37 기준 데이터 (이후 변경사항은 반영되지 않습니다. 최신 데이터·입력 기능은 사내망 서버 링크를 이용하세요)</div>
 
 <header>
   <div class="brand">
@@ -645,6 +645,65 @@ function openDetail(id){
 function closeDetail(){selId=null;document.getElementById('dpanel').classList.remove('open');renderCards();}
 function setFilter(el,type,val){el.closest('.fg').querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');flt[type]=val;renderCards();}
 
+const CHART_COLORS=['#3b82f6','#f59e0b','#10b981','#ef4444','#8b5cf6','#06b6d4','#f97316','#84cc16','#ec4899','#14b8a6'];
+let chartInstances={};
+function renderCharts(){
+  Object.values(chartInstances).forEach(c=>{try{c.destroy();}catch(e){}});chartInstances={};
+
+  const regionMap={};DATA.forEach(p=>{const r=p.country||'기타';regionMap[r]=(regionMap[r]||0)+1;});
+  chartInstances.region=new Chart(document.getElementById('chartRegion'),{
+    type:'doughnut',
+    data:{labels:Object.keys(regionMap),datasets:[{data:Object.values(regionMap),backgroundColor:CHART_COLORS,borderWidth:2,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12}}}}
+  });
+
+  const stMap={'검토중':0,'오퍼제출':0,'협상중':0,'수주':0,'유찰':0};
+  DATA.forEach(p=>{const s=p.status||'검토중';if(s in stMap)stMap[s]++;});
+  chartInstances.status=new Chart(document.getElementById('chartStatus'),{
+    type:'bar',
+    data:{labels:Object.keys(stMap),datasets:[{data:Object.values(stMap),backgroundColor:['#3b82f6','#f59e0b','#f97316','#10b981','#9ca3af'],borderRadius:6}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{stepSize:1}}}}
+  });
+
+  const divMap={'철강본부':0,'소재바이오본부':0,'에너지사업본부':0,'가스사업본부':0};
+  DATA.forEach(p=>{divMap[divLabel(p.div)]++;});
+  chartInstances.div=new Chart(document.getElementById('chartDiv'),{
+    type:'bar',
+    data:{labels:Object.keys(divMap),datasets:[{data:Object.values(divMap),backgroundColor:['#3b82f6','#10b981','#f59e0b','#6b46c1'],borderRadius:6}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}
+  });
+
+  const srcMap={};DATA.forEach(p=>{const s=p.source||'기타';srcMap[s]=(srcMap[s]||0)+1;});
+  chartInstances.source=new Chart(document.getElementById('chartSource'),{
+    type:'doughnut',
+    data:{labels:Object.keys(srcMap),datasets:[{data:Object.values(srcMap),backgroundColor:CHART_COLORS.slice(3),borderWidth:2,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12}}}}
+  });
+
+  const today=new Date(),todayStr=today.toISOString().split('T')[0];
+  const in60=new Date(Date.now()+60*86400000).toISOString().split('T')[0];
+  const upcoming=DATA.filter(p=>p.deadline&&p.deadline>=todayStr&&p.deadline<=in60).sort((a,b)=>a.deadline.localeCompare(b.deadline));
+  document.getElementById('deadlineList').innerHTML=upcoming.length
+    ?upcoming.map(p=>{
+        const days=Math.round((new Date(p.deadline)-today)/86400000);
+        const cls=days<=7?'urgent':days<=30?'warn':'ok';
+        return `<div class="dl-item"><div class="dl-days ${cls}">D-${days}</div><div class="dl-title">${p.title}</div><div class="dl-meta">${p.deadline} · ${p.region||p.country}</div></div>`;
+      }).join('')
+    :'<div style="font-size:12px;color:var(--sub);text-align:center;padding:14px;">60일 이내 마감 프로젝트가 없습니다.</div>';
+
+  ['steel','materials','energy','gas'].forEach(div=>{
+    const dp=DATA.filter(p=>p.div===div);
+    const won=dp.filter(p=>p.status==='수주').length;
+    const inprog=dp.filter(p=>['검토중','오퍼제출','협상중'].includes(p.status||'검토중')).length;
+    const el=document.getElementById('dc-'+div);
+    if(el){
+      el.children[0].querySelector('.v').textContent=dp.length;
+      el.children[1].querySelector('.v').textContent=won;
+      el.children[2].querySelector('.v').textContent=inprog;
+    }
+  });
+}
+
 function sendTeams(id){showToast('⚠️ 정적 파일 버전입니다 — Teams 공유는 사내망 서버 링크에서만 동작합니다.');}
 function runScan(){showToast('⚠️ 정적 파일 버전입니다 — 자동수집은 사내망 서버 링크에서만 동작합니다.');}
 function onDrop(e){e.preventDefault();showToast('⚠️ 정적 파일 버전입니다 — 업로드는 사내망 서버 링크에서만 동작합니다.');}
@@ -654,6 +713,7 @@ function addManual(){showToast('⚠️ 정적 파일 버전입니다 — 추가 
 
 document.getElementById('hlist').innerHTML='<div style="font-size:12px;color:var(--sub);text-align:center;padding:14px;">정적 파일 버전에서는 업로드 이력이 표시되지 않습니다.</div>';
 renderCards();
+renderCharts();
 </script>
 </body>
 </html>
